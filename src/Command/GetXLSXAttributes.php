@@ -25,7 +25,7 @@ class GetXLSXAttributes extends Command
     public function configure()
     {
 
-        $this->setDescription('Get brand names from xml file')
+        $this->setDescription('Get xlsx file with valid columns')
             ->addArgument('inputFile', InputArgument::REQUIRED, 'Data XLSX File')
             ->addArgument('lookupFile', InputArgument::REQUIRED, 'Attribute names CSV File')
             ->addArgument('outputFile', InputArgument::REQUIRED, 'Output File(XLSX) Path');
@@ -38,6 +38,9 @@ class GetXLSXAttributes extends Command
         $attrFilePath = $input->getArgument('lookupFile');
         $outputFilePath = $input->getArgument('outputFile');
 
+        $file = fopen($outputFilePath, 'a');
+        fclose($file);
+
         $attrFile = fopen($attrFilePath, 'r');
 
         $reader = ReaderEntityFactory::createXLSXReader();
@@ -45,7 +48,6 @@ class GetXLSXAttributes extends Command
         $reader->open($inputFilePath);
         
         $attrIndexArr = $this->getAttributeArray($reader, $attrFile);
-        fclose($attrFile);
         $invalidArr = $this->getInvalidValues();
 
         $this->getSpecifiedValuesByIndex($reader, $outputFilePath, $attrIndexArr, $invalidArr);
@@ -84,11 +86,14 @@ class GetXLSXAttributes extends Command
         while (!feof($attrFile)) {
             if ($row = fgetcsv($attrFile)) {
                 $attrLabel = $row[1];
-                $index = array_search($attrLabel, $attrs);
-                if (!($index == "") || $index==0) {
+                if ($index = array_search($attrLabel, $attrs)) {
                     $attrIndex[] = $index;
                 }else{
-                    $attrIndex[] = -1;
+                    if($attrs[0]===$attrLabel){
+                        $attrIndex[] = $index;
+                    }else{
+                        $attrIndex[] = $attrLabel;
+                    }
                 }
             }
         }
@@ -115,6 +120,7 @@ class GetXLSXAttributes extends Command
         $writer->openToFile($outputFilePath);
         foreach ($reader->getSheetIterator() as $sheet) {
             $i = 0;
+            $c = 1;
             foreach ($sheet->getRowIterator() as $row) {
                 $cells = $row->getCells();
                 $opRow = array();
@@ -123,29 +129,37 @@ class GetXLSXAttributes extends Command
                     continue;
                 }
                 foreach($attrIndexArr as $index){
-                    if($index>-1){
-                        $val = $cells[$index]->getValue();
-                        
-                        if(array_search($val, $invalidArr)){
-                            $val = '';
+                    if(gettype($index)=="string"){
+                        if($c<2){
+                            // echo $index . "\n";
+                            $opRow[] = $index;
+                        }else{
+                            $opRow[] = "";
                         }
-                        $opRow[] = $val;
-                        
                     }else{
-                        $opRow[] ='';
+                            $val = $cells[$index]->getValue();
+                            
+                            if(array_search($val, $invalidArr)){
+                                $val = '';
+                            }
+                            $opRow[] = $val;
+                            
+                        }
+                        
                     }
-
-                }
-
+                    
+                    // print_r($opRow);
+                    $singleRow = WriterEntityFactory::createRowFromArray($opRow);
+                    echo "Added row-->".$c."\n";
+                    $writer->addRow($singleRow);
+                    $c += 1;
                 
-                $singleRow = WriterEntityFactory::createRowFromArray($opRow);
-                $writer->addRow($singleRow);
             }
             break;
         }
         
         $writer->close();
-        exit;
+        // exit;
 
     }
 }
