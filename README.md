@@ -2,6 +2,7 @@
 ### Using Jupyter Notebook and CLI tool for uploading attribute, attribute options and families
 
 - Clone repository to local. Install and run.<code>composer require composer</code>
+- Create local PIMLookUp.csv file and add its absolute path in GenXlsxAttributeJson.php and GenXlsxAttributeJson.php files.
   
 
 ### A: Jupyter Notebook:-
@@ -11,6 +12,7 @@
 >  3. Enter output file path in ```ouputFileName``` variable.
 >  4. Run the whole script from top cell.
 >  5. OutputFile will now be generated at provided location.
+>  6. To directly can php scripts and skip step B, provide appropiate flags and variables as stated in notebook.
   
 
 ### B: Terminal commands to generate JSONs and push attribute, attribute options and families.
